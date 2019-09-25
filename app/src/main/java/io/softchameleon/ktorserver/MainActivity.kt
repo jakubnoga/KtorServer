@@ -1,27 +1,15 @@
 package io.softchameleon.ktorserver
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
-import io.ktor.application.call
-import io.ktor.http.ContentType
-import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.routing
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.ApplicationEngine
-import io.ktor.server.engine.embeddedServer
-import java.util.*
-import java.util.concurrent.TimeUnit
-import java.util.function.Consumer
 
 
 class MainActivity : Activity() {
-    private lateinit var server: ApplicationEngine
     private lateinit var startBtn: Button
     private lateinit var stopBtn: Button
+    private lateinit var serviceIntent: Intent
     private var buttons = mutableListOf<Button>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,35 +17,25 @@ class MainActivity : Activity() {
         setContentView(R.layout.activity_main)
 
         startBtn = findViewById<Button>(R.id.run_button)
-            .also { it?.setOnClickListener { v -> server = startServer() } }
+            .also {
+                it?.setOnClickListener {
+                    toggleButtonsEnabled()
+                    serviceIntent = Intent(this, ServerService::class.java)
+                    startService(serviceIntent)
+                }
+            }
             .also { buttons.add(it) }
 
         stopBtn = findViewById<Button>(R.id.stop_button)
-            .also { it?.setOnClickListener { v -> stopServer() } }
-            .also { buttons.add(it) }
-    }
-
-    private fun stopServer() {
-        if (!this::server.isInitialized)
-            return
-        server.stop(gracePeriod = 0, timeout = 0, timeUnit = TimeUnit.SECONDS)
-        toggleButtonsEnabled()
-    }
-
-    private fun startServer(): ApplicationEngine {
-        val server = embeddedServer(CIO, port = 8080) {
-            val routing = routing {
-                get("/") {
-                    call.respondText("Hello World!", ContentType.Text.Plain)
-                }
-                get("/demo") {
-                    call.respondText("HELLO WORLD!")
+            .also {
+                it?.setOnClickListener {
+                    toggleButtonsEnabled()
+                    if (this::serviceIntent.isInitialized)
+                        stopService(serviceIntent)
                 }
             }
-        }
-        server.start(wait = false);
-        toggleButtonsEnabled()
-        return server
+            .also { buttons.add(it) }
+
     }
 
     private fun toggleButtonsEnabled() {
